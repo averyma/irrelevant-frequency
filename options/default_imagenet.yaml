@@ -1,0 +1,28 @@
+# method / detaset / arch / pretrained
+method: "standard"
+dataset: "imagenet"
+arch: "resnet50"
+log_dir: "./exp/"
+pretrain: ""
+
+# optimization settings: https://github.com/pytorch/vision/tree/main/references/classification#resnet
+lr: 0.1
+lr_scheduler_type: "cosine"
+momentum: 0.9
+weight_decay: 0.0001
+nesterov: True
+batch_size: 128
+seed: 0
+epoch: 200 
+
+lr_warmup_type: 'linear'
+lr_warmup_decay: 0.03
+lr_warmup_epoch: 5
+
+# checkpoint
+ckpt_freq: 1
+
+# wandb flag
+enable_wandb: false
+
+print_freq: 1000

@@ -1,0 +1,28 @@
+# method / detaset / arch / pretrained
+method: "standard"
+dataset: "cifar10"
+arch: "preactresnet18"
+log_dir: "./exp/"
+pretrain: ""
+
+# optimization settings
+lr: 0.1
+lr_scheduler_type: "cosine"
+momentum: 0.9
+weight_decay: 0.0002
+nesterov: True
+batch_size: 128
+seed: 0
+epoch: 200 
+
+lr_warmup_type: 'linear'
+lr_warmup_decay: 0.01
+lr_warmup_epoch: 1
+
+# checkpoint
+ckpt_freq: 20
+
+# wandb flag
+enable_wandb: false
+
+print_freq: 100
