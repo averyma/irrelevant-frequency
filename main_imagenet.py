@@ -21,7 +21,7 @@ import numpy as np
 
 from src.args import get_args, print_args
 
-from src.utils_dataset import load_dataset
+from src.utils_dataset import load_dataset, load_imagenet_test_1k
 from src.utils_log import metaLogger, rotateCheckpoint, wandbLogger, saveModel, delCheckpoint
 from src.utils_general import seed_everything, get_model, get_optim, remove_module, set_weight_decay
 from src.transforms import get_mixup_cutmix
@@ -262,6 +262,10 @@ def main_worker(gpu, ngpus_per_node, args):
                 args.random_erase,
                 args.augmix_severity
                 )
+    test_loader_random_1k, val_sampler = load_imagenet_test_1k(batch_size=32,
+                                                               workers=0,
+                                                               selection='fixed',
+                                                               distributed=args.distributed)
 
     if args.dataset == 'imagenet':
         num_classes = 1000
@@ -295,6 +299,9 @@ def main_worker(gpu, ngpus_per_node, args):
         test_acc1, test_acc5 = validate(test_loader, model, criterion, args, is_main_task, False)
         if args.distributed:
             dist.barrier()
+        adv_acc1, adv_acc5 = validate(test_loader_random_1k, model, criterion, args, is_main_task, True)
+        if args.distributed:
+            dist.barrier()
         lr_scheduler.step()
 
         is_best = test_acc1 > best_acc1
@@ -308,6 +315,8 @@ def main_worker(gpu, ngpus_per_node, args):
             logger.add_scalar("lr", opt.param_groups[0]['lr'], _epoch)
             logger.add_scalar("test/top1_acc", test_acc1, _epoch)
             logger.add_scalar("test/top5_acc", test_acc5, _epoch)
+            logger.add_scalar("adv/top1_acc", test_acc1, _epoch)
+            logger.add_scalar("adv/top5_acc", test_acc5, _epoch)
             logger.add_scalar("test/best_top1_acc", best_acc1, _epoch)
             logging.info(
                 "Epoch: [{0}]\t"
@@ -316,7 +325,9 @@ def main_worker(gpu, ngpus_per_node, args):
                 "Train Accuracy(top1): {train_acc1:.2f}\t"
                 "Train Accuracy(top5): {train_acc5:.2f}\t"
                 "Test Accuracy(top1): {test_acc1:.2f}\t"
-                "Test Accuracy(top5): {test_acc5:.2f}\t".format(
+                "Test Accuracy(top5): {test_acc5:.2f}\t"
+                "Adv Accuracy(top1): {adv_acc1:.2f}\t"
+                "Adv Accuracy(top5): {adv_acc5:.2f}\t".format(
                     _epoch,
                     lr=opt.param_groups[0]['lr'],
                     loss=loss,
@@ -324,6 +335,8 @@ def main_worker(gpu, ngpus_per_node, args):
                     train_acc5=train_acc5,
                     test_acc1=test_acc1,
                     test_acc5=test_acc5,
+                    adv_acc1=adv_acc1,
+                    adv_acc5=adv_acc5,
                     ))
 
             # checkpointing for preemption

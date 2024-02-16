@@ -130,27 +130,6 @@ def parse_args():
                         # help="decay factor for Exponential Moving Average of model parameters (default: 0.99998)")
 
 
-    # model alignment/misalignment
-    parser.add_argument("--source_model",
-                        default=argparse.SUPPRESS)
-    parser.add_argument("--modified_source_model",
-    			default=None, type=str)
-    parser.add_argument("--target_model",
-                        default=argparse.SUPPRESS)
-    parser.add_argument("--source_arch",
-                        default=argparse.SUPPRESS)
-    parser.add_argument("--source_in_eval_mode",
-                        default=False, type=distutils.util.strtobool)
-    parser.add_argument("--target_arch",
-                        default=argparse.SUPPRESS)
-    parser.add_argument("--witness_arch",
-                        default=argparse.SUPPRESS)
-    parser.add_argument("--num_witness",
-                        default=1, type=int)
-    parser.add_argument("--noise_type",
-                        default='none', type=str)
-    parser.add_argument("--save_modified_model",
-                        default=False, type=distutils.util.strtobool)
     # the following pgd params are used in whitebox and transfer evaluations
     # if alignment is performed at pgd perturbed datapoint, the same pgd_eps, pgd_alpha
     # will be used, the number of iteration is specified in ${noise_type}
@@ -161,31 +140,12 @@ def parse_args():
     parser.add_argument("--pgd_alpha",
                             default=1./255., type=float)
 
-    parser.add_argument("--rkd_dist_ratio",
-                            default=1., type=float)
-    parser.add_argument("--rkd_angle_ratio",
-                            default=2., type=float)
-    parser.add_argument("--ega_node_weight",
-                            default=0.8, type=float)
-    parser.add_argument("--ega_edge_weight",
-                            default=0.24, type=float)
-    parser.add_argument("--hint_weight",
-                            default=1., type=float)
-    parser.add_argument("--nce_temp",
-                            default=0.1, type=float)
-    parser.add_argument("--kl_temp",
-                            default=4., type=float)
-    parser.add_argument("--kl_reduction",
-                            default='average', type=str)
-    parser.add_argument("--always_proj",
-                        default=True, type=distutils.util.strtobool)
-    parser.add_argument("--lambda_cls",
-                            default=0., type=float)
-    parser.add_argument("--lambda_kd",
-                            default=1., type=float)
+    # parameters for irrelevant frequency project
+    parser.add_argument('--filter_type',
+                        default=None, type=str)
 
-    parser.add_argument('--source_idx', default=0, type=int)
-    parser.add_argument('--target_idx', default=1, type=int)
+    parser.add_argument('--filter_threshold',
+                            default=30., type=float)
 
 
     args = parser.parse_args()

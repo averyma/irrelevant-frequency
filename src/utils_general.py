@@ -39,43 +39,6 @@ def seed_everything(manual_seed):
 
 def get_model(args, device=None):
 
-    # if args.dataset.startswith('cifar'):
-        # num_classes = 10 if args.dataset == 'cifar10' else 100
-        # if args.arch == 'preactresnet18':
-            # model = PreActResNet18(num_classes)
-        # elif args.arch == 'preactresnet50':
-            # model = PreActResNet50(num_classes)
-        # elif args.arch == 'wrn28':
-            # model = Wide_ResNet(28, 10, 0.3, num_classes)
-        # elif args.arch == 'vgg19':
-            # model = VGG('VGG19', num_classes)
-        # elif args.arch == 'vit_small':
-            # model = ViT(
-                # image_size=32,
-                # patch_size=4,
-                # num_classes=num_classes,
-                # dim=512,
-                # depth=6,
-                # heads=8,
-                # mlp_dim=512,
-                # dropout=0.1,
-                # emb_dropout=0.1
-                        # )
-        # else:
-            # raise NotImplementedError("model not included")
-    # else:
-        # if args.arch == 'simplevit':
-            # from vit_pytorch import SimpleViT
-
-            # model = SimpleViT(
-                    # image_size = 224,
-                    # patch_size = 16,
-                    # num_classes = 1000,
-                    # dim = 1024,
-                    # depth = 6,
-                    # heads = 16,
-                    # mlp_dim = 2048
-            # )
     if args.arch == 'inception_v3':
         model = timm.create_model('inception_v3', pretrained=False)
     elif args.arch.startswith('vit'):
@@ -91,11 +54,6 @@ def get_model(args, device=None):
         model = timm.create_model('swin_base_patch4_window7_224', pretrained=False)
     else:
         model = torchvision.models.get_model(args.arch)
-
-    # if args.pretrain:
-        # model.load_state_dict(torch.load(args.pretrain, map_location=device))
-        # model.to(device)
-        # print("\n ***  pretrain model loaded: "+ args.pretrain + " *** \n")
 
     if device is not None:
         model.to(device)

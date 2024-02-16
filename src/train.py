@@ -5,6 +5,7 @@ from tqdm import trange
 import time
 
 from src.utils_log import Summary, AverageMeter, ProgressMeter
+from src.utils_freq import getDCTmatrix, mask_radial, filter_based_on_freq, filter_based_on_amp
 from src.evaluation import accuracy
 import ipdb
 
@@ -60,6 +61,16 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, is_mai
     # switch to train mode
     model.train()
 
+    if args.filter_type is not None:
+        assert args.filter_threshold in list(range(10, 100, 10))
+        dct_matrix = getDCTmatrix(224)
+        if args.filter_type == 'freq':
+            list_r = [79.99591867969022, 113.48107898359288, 138.12383764880263,
+                      159.77959526368392, 178.8104125616099, 195.53446412645394,
+                      211.45609907581306, 226.35093083884985, 250.1009872575449]
+            r = list_r[int(args.filter_threshold/10 - 1)]
+            mask = torch.tensor(mask_radial(224, r), dtype=torch.float32)
+
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
         # measure data loading time
@@ -68,6 +79,11 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, is_mai
         # move data to the same device as model
         images = images.to(device, non_blocking=True)
         target = target.to(device, non_blocking=True)
+
+        if args.filter_type == 'freq':
+            images = filter_based_on_freq(images, dct_matrix, mask)
+        elif args.filter_type == 'amp':
+            images = filter_based_on_amp(images, dct_matrix, args.filter_threshold)
 
         # mixup-cutmix
         orig_target = target.clone().detach()
@@ -78,7 +94,6 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, is_mai
         with torch.cuda.amp.autocast(enabled=scaler is not None):
             output = model(images)
             loss = criterion(output, target)
-        ipdb.set_trace()
 
         # measure accuracy and record loss
         acc1, acc5 = accuracy(output, orig_target, topk=(1, 5))
