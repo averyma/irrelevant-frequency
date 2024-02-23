@@ -145,41 +145,9 @@ def batch_idct2(input_tensor, dct_matrix):
     
     return idct2_output
 
-def batch_dct2_3channel(inverse, input_tensor, dct_matrix):
-    """
-        reference: https://docs.opencv.org/2.4/modules/core/doc/operations_on_arrays.html#dct
-    """
-    # make sure batch input and 3chennels
-    if len(input_tensor.shape) == 3:
-        input_tensor = input_tensor.unsqueeze(0)
-
-    assert len(input_tensor.shape) == 4, "Input tensor must be of shape (batch, 3, height, width)"
-
-    batch_size, channels, height, width = input_tensor.shape
-    output = torch.zeros_like(input_tensor, device=input_tensor.device)
-    d = input_tensor.shape[2]
-    if inverse:
-        matrix = torch.inverse(dct_matrix).to(input_tensor.device).expand(batch_size, -1, -1)
-    else:
-        matrix = dct_matrix.to(input_tensor.device).expand(batch_size, -1, -1)
-
-    for i in range(3):
-        output[:, i, :, :] = torch.bmm(torch.bmm(matrix.transpose(1, 2), input_tensor[:,i,:,:].view(batch_size,d,d)), matrix)
-
-    # Reshape back to the original tensor format
-    if batch_size == 1:
-        output = output.view(channels, height, width)
-    else:
-        output = output.view(batch_size, channels, height, width)
-
-    return output
-
 def batch_dct2_3channel_optimized(inverse, input_tensor, dct_matrix):
     # make sure batch input and 3chennels
-    if len(input_tensor.shape) == 3:
-        input_tensor = input_tensor.unsqueeze(0)
-
-    assert len(input_tensor.shape) == 4, "Input tensor must be of shape (batch, 3, height, width), now: {}".format(input_tensor.shape)
+    assert len(input_tensor.shape) == 4, "Input tensor must be of shape (batch, 3, height, width)"
 
     # No need to expand the DCT matrix; PyTorch's broadcasting handles it
     if inverse:
@@ -195,31 +163,43 @@ def batch_dct2_3channel_optimized(inverse, input_tensor, dct_matrix):
     transformed = torch.bmm(matrix @ input_reshaped, matrix.unsqueeze(0).expand(batch_size * channels, -1, -1))
 
     # Reshape back to the original tensor format
-    if batch_size == 1:
-        output = transformed.view(channels, height, width)
+    output = transformed.view(batch_size, channels, height, width)
+
+    return output
+
+def dct2_3channel_optimized(inverse, input_tensor, dct_matrix):
+    # make sure batch input and 3chennels
+    assert len(input_tensor.shape) == 3, "Input tensor must be of shape (3, height, width)"
+
+    # No need to expand the DCT matrix; PyTorch's broadcasting handles it
+    if inverse:
+        matrix = torch.inverse(dct_matrix).to(input_tensor.device)
     else:
-        output = transformed.view(batch_size, channels, height, width)
+        matrix = dct_matrix.to(input_tensor.device)
+
+    # Apply DCT or inverse DCT in a batched manner
+    output = torch.bmm(matrix @ input_tensor, matrix.expand(3, -1, -1))
 
     return output
 
-def filter_based_on_freq(batch_input, dct_matrix, mask):
+def filter_based_on_freq(input_tensor, dct_matrix, mask):
 
-    batch_dct = batch_dct2_3channel_optimized(False, batch_input, dct_matrix)
-    batch_dct.mul_(mask.to(batch_input.device))
-    output = batch_dct2_3channel_optimized(True, batch_dct, dct_matrix)
+    input_dct = dct2_3channel_optimized(False, input_tensor, dct_matrix)
+    input_dct.mul_(mask.to(input_tensor.device))
+    output = dct2_3channel_optimized(True, input_dct, dct_matrix)
     return output
 
-def filter_based_on_amp(batch_input, dct_matrix, threshold):
+def filter_based_on_amp(input_tensor, dct_matrix, threshold):
 
-    batch_dct = batch_dct2_3channel_optimized(False, batch_input, dct_matrix)
+    input_dct = dct2_3channel_optimized(False, input_tensor, dct_matrix)
 
-    batch_dct_abs = batch_dct.abs()
-    threshold_for_each_sample = torch.quantile(batch_dct_abs.flatten(start_dim=1),
-                                               1.-threshold/100., dim=1, keepdim=False)
-    mask = batch_dct_abs >= threshold_for_each_sample.view(batch_input.shape[0], 1, 1, 1)
-    batch_dct.mul_(mask.to(batch_input.device))
+    input_dct_abs = input_dct.abs()
+    actual_threshold = torch.quantile(input_dct_abs, 1.-threshold/100.)
+    mask = input_dct_abs >= actual_threshold
+    input_dct.mul_(mask.to(input_tensor.device))
 
-    output = batch_dct2_3channel_optimized(True, batch_dct, dct_matrix)
+    output = dct2_3channel_optimized(True, input_dct, dct_matrix)
+
     return output
 
 def fft(img):
