@@ -61,15 +61,15 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, is_mai
     # switch to train mode
     model.train()
 
-    if args.filter_type is not None:
-        assert args.filter_threshold in list(range(10, 100, 10))
-        dct_matrix = getDCTmatrix(224)
-        if args.filter_type == 'freq':
-            list_r = [79.99591867969022, 113.48107898359288, 138.12383764880263,
-                      159.77959526368392, 178.8104125616099, 195.53446412645394,
-                      211.45609907581306, 226.35093083884985, 250.1009872575449]
-            r = list_r[int(args.filter_threshold/10 - 1)]
-            mask = torch.tensor(mask_radial(224, r), dtype=torch.float32)
+    # if args.filter_type is not None:
+    #     assert args.filter_threshold in list(range(10, 100, 10))
+    #     dct_matrix = getDCTmatrix(224)
+    #     if args.filter_type == 'freq':
+    #         list_r = [79.99591867969022, 113.48107898359288, 138.12383764880263,
+    #                   159.77959526368392, 178.8104125616099, 195.53446412645394,
+    #                   211.45609907581306, 226.35093083884985, 250.1009872575449]
+    #         r = list_r[int(args.filter_threshold/10 - 1)]
+    #         mask = torch.tensor(mask_radial(224, r), dtype=torch.float32)
 
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
@@ -80,10 +80,10 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, is_mai
         images = images.to(device, non_blocking=True)
         target = target.to(device, non_blocking=True)
 
-        if args.filter_type == 'freq':
-            images = filter_based_on_freq(images, dct_matrix, mask)
-        elif args.filter_type == 'amp':
-            images = filter_based_on_amp(images, dct_matrix, args.filter_threshold)
+        # if args.filter_type == 'freq':
+        #     images = filter_based_on_freq(images, dct_matrix, mask)
+        # elif args.filter_type == 'amp':
+        #     images = filter_based_on_amp(images, dct_matrix, args.filter_threshold)
 
         # mixup-cutmix
         orig_target = target.clone().detach()
@@ -120,9 +120,9 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, is_mai
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i % args.print_freq == 0 and is_main_task:
+        if (i % args.print_freq == 0 and is_main_task) or args.debug:
             progress.display(i + 1)
-        if args.debug and i == 2:
+        if args.debug and i == 10:
             break
 
     return top1.avg, top5.avg, losses.avg

@@ -150,8 +150,12 @@ def batch_dct2_3channel(inverse, input_tensor, dct_matrix):
         reference: https://docs.opencv.org/2.4/modules/core/doc/operations_on_arrays.html#dct
     """
     # make sure batch input and 3chennels
-    assert len(input_tensor.shape) == 4 and input_tensor.shape[1] == 3
-    batch_size = input_tensor.shape[0]
+    if len(input_tensor.shape) == 3:
+        input_tensor = input_tensor.unsqueeze(0)
+
+    assert len(input_tensor.shape) == 4, "Input tensor must be of shape (batch, 3, height, width)"
+
+    batch_size, channels, height, width = input_tensor.shape
     output = torch.zeros_like(input_tensor, device=input_tensor.device)
     d = input_tensor.shape[2]
     if inverse:
@@ -162,10 +166,20 @@ def batch_dct2_3channel(inverse, input_tensor, dct_matrix):
     for i in range(3):
         output[:, i, :, :] = torch.bmm(torch.bmm(matrix.transpose(1, 2), input_tensor[:,i,:,:].view(batch_size,d,d)), matrix)
 
+    # Reshape back to the original tensor format
+    if batch_size == 1:
+        output = output.view(channels, height, width)
+    else:
+        output = output.view(batch_size, channels, height, width)
+
     return output
 
 def batch_dct2_3channel_optimized(inverse, input_tensor, dct_matrix):
-    assert len(input_tensor.shape) == 4 and input_tensor.shape[1] == 3, "Input tensor must be of shape (batch, 3, height, width)"
+    # make sure batch input and 3chennels
+    if len(input_tensor.shape) == 3:
+        input_tensor = input_tensor.unsqueeze(0)
+
+    assert len(input_tensor.shape) == 4, "Input tensor must be of shape (batch, 3, height, width), now: {}".format(input_tensor.shape)
 
     # No need to expand the DCT matrix; PyTorch's broadcasting handles it
     if inverse:
@@ -181,7 +195,10 @@ def batch_dct2_3channel_optimized(inverse, input_tensor, dct_matrix):
     transformed = torch.bmm(matrix @ input_reshaped, matrix.unsqueeze(0).expand(batch_size * channels, -1, -1))
 
     # Reshape back to the original tensor format
-    output = transformed.view(batch_size, channels, height, width)
+    if batch_size == 1:
+        output = transformed.view(channels, height, width)
+    else:
+        output = transformed.view(batch_size, channels, height, width)
 
     return output
 

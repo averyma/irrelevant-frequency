@@ -15,6 +15,8 @@ import os
 from PIL import Image
 import math
 
+from src.utils_freq import getDCTmatrix, mask_radial, filter_based_on_freq, filter_based_on_amp
+
 def _apply_op(img: Tensor, op_name: str, magnitude: float, interpolation: InterpolationMode, fill: Optional[List[float]]):
     if op_name == "ShearX":
         # magnitude should be arctan(magnitude)
@@ -297,6 +299,61 @@ class CustomAugment(torch.nn.Module):
             f", num_magnitude_bins={self.num_magnitude_bins}"
             f", interpolation={self.interpolation}"
             f", fill={self.fill}"
+            f")"
+        )
+        return s
+
+class Filter(torch.nn.Module):
+    r""" 
+    This function applies a filter to the input image based on the specified filter type and threshold.
+    """
+
+    def __init__(
+        self,
+        # num_ops: int = 2,
+        filter_type: str = 'freq',
+        filter_threshold: int = 0,
+    ) -> None:
+        super().__init__()
+        # self.num_ops = num_ops
+        self.filter_type = filter_type
+        self.filter_threshold = filter_threshold
+        self.dct_matrix = getDCTmatrix(224)
+
+        if self.filter_type == 'freq':
+            list_r = [79.99591867969022, 113.48107898359288, 138.12383764880263,
+                      159.77959526368392, 178.8104125616099, 195.53446412645394,
+                      211.45609907581306, 226.35093083884985, 250.1009872575449]
+            self.r = list_r[int(self.filter_threshold/10 - 1)]
+            self.mask = torch.tensor(mask_radial(224, self.r), dtype=torch.float32)
+    
+
+    def forward(self, img: Tensor) -> Tensor:
+        """
+            img (PIL Image or Tensor): Image to be transformed.
+
+        Returns:
+            PIL Image or Tensor: Transformed image.
+        """
+        if self.filter_threshold > 100. or self.filter_threshold < 0:
+            raise ValueError("The specified threshold is not valid.")
+
+        if self.filter_type not in ['freq', 'amp']:
+            raise ValueError("The specified filter type is not valid.")
+
+        if self.filter_type == 'freq':
+            img = filter_based_on_freq(img, self.dct_matrix, self.mask)
+        elif self.filter_type == 'amp':
+            img = filter_based_on_amp(img, self.dct_matrix, self.filter_threshold)
+
+        return img
+
+
+    def __repr__(self) -> str:
+        s = (
+            f"{self.__class__.__name__}("
+            f"filter_type={self.filter_type}"
+            f", filter_threshold={self.filter_threshold}"
             f")"
         )
         return s
