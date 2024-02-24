@@ -189,6 +189,14 @@ def filter_based_on_freq(input_tensor, dct_matrix, mask):
     output = dct2_3channel_optimized(True, input_dct, dct_matrix)
     return output
 
+def filter_based_on_freq_with_crop(input_tensor, dct_matrix, mask, smaller_dct_matrix):
+
+    cropsize = smaller_dct_matrix.shape[0]
+    input_dct = dct2_3channel_optimized(False, input_tensor, dct_matrix)
+    input_dct.mul_(mask.to(input_tensor.device))
+    output = dct2_3channel_optimized(True, input_dct[:,:cropsize,:cropsize], smaller_dct_matrix)
+    return output
+
 def filter_based_on_amp(input_tensor, dct_matrix, threshold):
 
     input_dct = dct2_3channel_optimized(False, input_tensor, dct_matrix)

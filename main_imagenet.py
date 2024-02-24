@@ -263,6 +263,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 args.augmix_severity,
                 args.filter_type,
                 args.filter_threshold,
+                args.crop_size
                 )
     test_loader_random_1k, val_sampler = load_imagenet_test_1k(batch_size=32,
                                                                workers=0,

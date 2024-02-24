@@ -21,7 +21,7 @@ from torchvision.transforms.functional import InterpolationMode
 
 data_dir = '/scratch/ssd001/home/ama/workspace/data/'
 
-def load_dataset(dataset, batch_size=128, workers=4, distributed=False, auto_augment=None, ra_magnitude=9, interpolation='bilinear', ra_sampler=False, ra_reps=3, random_erase_prob=0.0, augmix_severity=3, filter_type=None, filter_threshold=0):
+def load_dataset(dataset, batch_size=128, workers=4, distributed=False, auto_augment=None, ra_magnitude=9, interpolation='bilinear', ra_sampler=False, ra_reps=3, random_erase_prob=0.0, augmix_severity=3, filter_type=None, filter_threshold=0, crop_size=0):
 
     if interpolation == 'bilinear':
         _interpolation = InterpolationMode.BILINEAR
@@ -81,16 +81,22 @@ def load_dataset(dataset, batch_size=128, workers=4, distributed=False, auto_aug
             transform_list.append(transforms.RandomErasing(p=random_erase_prob))
 
         if filter_type is not None:
-            transform_list.append(Filter(filter_type, filter_threshold))
+            transform_list.append(Filter(filter_type, filter_threshold, crop_size))
 
         transform_train = transforms.Compose(transform_list)
 
-        transform_test = transforms.Compose([
+        transform_test_list = [
             transforms.Resize(256, interpolation=_interpolation),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
-        ])
+        ]
+
+        if crop_size != 0:
+            transform_test_list.append(Filter(filter_type, filter_threshold, crop_size))
+
+        transform_test = transforms.Compose(transform_test_list)
+
     elif dataset == 'dummy':
         pass
     else:
