@@ -147,10 +147,6 @@ def parse_args():
     parser.add_argument('--filter_threshold',
                             default=30., type=float)
 
-    parser.add_argument('--crop_size',
-                            default=0, type=int)
-
-
     args = parser.parse_args()
 
     return args

@@ -313,17 +313,12 @@ class Filter(torch.nn.Module):
         # num_ops: int = 2,
         filter_type: str = 'freq',
         filter_threshold: int = 0,
-        crop_size: int = 0,
     ) -> None:
         super().__init__()
         # self.num_ops = num_ops
         self.filter_type = filter_type
         self.filter_threshold = filter_threshold
         self.dct_matrix = getDCTmatrix(224)
-        self.crop_size = crop_size
-
-        if self.crop_size != 0:
-            self.smaller_dct_matrix = getDCTmatrix(self.crop_size)
 
         if self.filter_type == 'freq':
             list_r = [79.99591867969022, 113.48107898359288, 138.12383764880263,
@@ -347,10 +342,7 @@ class Filter(torch.nn.Module):
             raise ValueError("The specified filter type is not valid.")
 
         if self.filter_type == 'freq':
-            if self.crop_size == 0:
-                img = filter_based_on_freq(img, self.dct_matrix, self.mask)
-            else:
-                img = filter_based_on_freq_with_crop(img, self.dct_matrix, self.mask, self.smaller_dct_matrix)
+            img = filter_based_on_freq(img, self.dct_matrix, self.mask)
         elif self.filter_type == 'amp':
             img = filter_based_on_amp(img, self.dct_matrix, self.filter_threshold)
 
